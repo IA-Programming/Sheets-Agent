@@ -1,2 +1,9 @@
+## Clasp
 .clasp.json
 appsscript.json
+
+## Google
+.claspignore
+
+## VSCode
+.vscode

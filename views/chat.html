@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridPilot</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Dark Theme
+                        dark: {
+                            background: 'hsl(0 0% 12%)',
+                            foreground: 'hsl(0 0% 90%)',
+                            muted: 'hsla(0 0% 24%)',
+                            'muted-foreground': 'hsla(0 0% 50%)',
+                            accent: 'hsl(207 90% 50%)',
+                            'accent-foreground': 'hsl(0 0% 95%)',
+                            border: 'hsl(0 0% 28%)',
+                            primary: 'hsl(207 100% 45%)',
+                            'primary-foreground': 'hsl(0 0% 98%)',
+                            secondary: 'hsl(207 100% 60%)',
+                            'secondary-foreground': 'hsl(0 0% 98%)',
+                            popover: 'hsl(0 0% 16%)',
+                            'popover-foreground': 'hsl(0 0% 90%)',
+                            input: 'hsla(0 0% 26%)',
+                            ring: 'hsl(0 0% 20%)',
+                            radius: '0.5rem',
+                        },
+                        // Light Theme
+                        light: {
+                            background: 'hsl(0 0% 100%)',
+                            foreground: 'hsl(0 0% 20%)',
+                            muted: 'hsl(0 0% 95%)',
+                            'muted-foreground': 'hsl(0 0% 60%)',
+                            accent: 'hsl(207 90% 50%)',
+                            'accent-foreground': 'hsl(0 0% 100%)',
+                            border: 'hsl(0 0% 86%)',
+                            primary: 'hsl(207 100% 45%)',
+                            'primary-foreground': 'hsl(0 0% 20%)',
+                            secondary: 'hsl(207 100% 75%)',
+                            'secondary-foreground': 'hsl(0 0% 20%)',
+                            popover: 'hsl(0 0% 95%)',
+                            'popover-foreground': 'hsl(0 0% 20%)',
+                            input: 'hsla(0 0% 90%)',
+                            ring: 'hsl(0 0% 20%)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Inline CSS -->
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 0 0% 20%;
+            --muted: 0 0% 95%;
+            --muted-foreground: 0 0% 65%;
+            --accent: 207 90% 50%;
+            --accent-foreground: 0 0% 100%;
+            --primary: 207 100% 45%;
+            --primary-foreground: 0 0% 20%;
+            --secondary: 207 100% 75%;
+            --secondary-foreground: 0 0% 20%;
+            --popover: 0 0% 95%;
+            --popover-foreground: 0 0% 20%;
+            --input: 0 0% 90%;
+            --ring: 0 0% 20%;
+        }
+
+        .dark {
+            --background: 0 0% 12%;
+            --foreground: 0 0% 90%;
+            --muted: 0 0% 24%;
+            --muted-foreground: 0 0% 50%;
+            --accent: 207 90% 50%;
+            --accent-foreground: 0 0% 95%;
+            --primary: 207 100% 45%;
+            --primary-foreground: 0 0% 98%;
+            --secondary: 207 100% 60%;
+            --secondary-foreground: 0 0% 98%;
+            --popover: 0 0% 16%;
+            --popover-foreground: 0 0% 90%;
+            --input: 0 0% 26%;
+            --ring: 0 0% 20%;
+        }
+
+        /* Basic scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: hsl(var(--muted-foreground));
+            border-radius: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: hsl(var(--muted-foreground));
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: hsl(var(--muted));
+        }
+
+        /* Hide scrollbar for cleaner look */
+        .scroll-none {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .scroll-none::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Animation */
+        .message-animation {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tool message styles */
+        .tool-content.expanded {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .tool-toggle.expanded i {
+            transform: rotate(180deg);
+        }
+
+        .tool-toggle i {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-light-background dark:bg-dark-background text-light-foreground dark:text-dark-foreground">
+    <!-- Top bar -->
+    <header class="px-3 py-2 flex justify-between items-center">
+        <h1 class="text-sm font-medium">GridPilot</h1>
+        <div class="flex items-center gap-2">
+            <button id="new-chat"
+                class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm"
+                title="New chat">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+            </button>
+            <button id="theme-toggle"
+                class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted p-1 rounded-sm"
+                title="Toggle theme">
+                <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
+                <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+            </button>
+            <button
+                class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Chat container -->
+    <section class="flex flex-col h-[calc(100vh-48px)]">
+        <!-- Message list -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+            <!-- Messages will be inserted here dynamically -->
+        </div>
+
+        <!-- Input area -->
+        <div class="px-2 pb-2">
+            <div
+                class="flex flex-col bg-light-popover dark:bg-dark-popover rounded-md border border-light-border dark:border-dark-border">
+                <textarea id="message-input"
+                    class="w-full resize-none outline-none bg-transparent p-2 min-h-[44px] max-h-32 text-sm text-light-foreground dark:text-dark-foreground placeholder:text-light-muted-foreground dark:placeholder:text-dark-muted-foreground"
+                    placeholder="Type a message..."></textarea>
+                <div class="px-2 py-1.5 flex justify-end border-t border-light-border dark:border-dark-border">
+                    <button id="send-message"
+                        class="px-1 py-0.5 leading-tight text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        disabled>
+                        Submit <span class="opacity-60">↵</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Message templates -->
+    <template id="user-message-template">
+        <div class="message-container mb-4 w-full bg-light-popover dark:bg-dark-popover border border-light-input dark:border-dark-input rounded-md px-3 py-2 text-sm break-words">
+            <p class="message-content"></p>
+        </div>
+    </template>
+
+    <template id="bot-message-template">
+        <div class="message-container mb-4 w-full text-sm break-words">
+            <p class="message-content"></p>
+            <div class="tool-sequence"></div>
+        </div>
+    </template>
+
+    <template id="tool-message-template">
+        <div class="message-container mb-4 w-full bg-light-popover dark:bg-dark-popover border border-light-input dark:border-dark-input rounded-md text-sm break-words">
+            <div class="flex justify-between items-center px-3 py-2 border-b border-light-border dark:border-dark-border">
+                <span class="tool-name font-medium text-light-primary dark:text-dark-primary"></span>
+                <button class="tool-toggle p-1 hover:bg-light-muted dark:hover:bg-dark-muted rounded-sm transition-colors">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="tool-content px-3 py-2">
+                <div class="message-content text-light-muted-foreground dark:text-dark-muted-foreground"></div>
+                <div class="tool-params mt-2 text-light-muted-foreground dark:text-dark-muted-foreground"></div>
+                <div class="tool-result mt-2"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Inline scripts -->
+    <script>
+        // Required global functions
+        let messageInput, sendButton, clearButton, themeToggle;
+
+        // Function to initialize UI
+        function initializeUI() {
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            // DOM element references - asegurarse de que existan
+            messageInput = document.getElementById('message-input');
+            if (!messageInput) return;
+
+            sendButton = document.getElementById('send-message');
+            clearButton = document.getElementById('clear-chat');
+            themeToggle = document.getElementById('theme-toggle');
+
+            // Auto-expand textarea
+            messageInput.addEventListener('input', handleInput);
+
+            // Handle enter to send
+            messageInput.addEventListener('keydown', handleKeyPress);
+
+            // Toggle for sources
+            document.addEventListener('click', handleSourcesToggle);
+
+            // Theme handling
+            initializeTheme();
+
+            // Action buttons
+            if (sendButton) sendButton.addEventListener('click', sendMessage);
+            if (clearButton) clearButton.addEventListener('click', clearChat);
+        }
+
+        // Event handling functions
+        function handleInput() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 96) + 'px';
+            sendButton.disabled = !this.value.trim();
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendButton.disabled) {
+                    sendMessage();
+                }
+            }
+        }
+
+        function handleSourcesToggle(e) {
+            if (e.target.classList.contains('sources-toggle')) {
+                const sourcesList = e.target.nextElementSibling;
+                sourcesList.classList.toggle('hidden');
+            }
+        }
+
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.className = savedTheme;
+
+            themeToggle.addEventListener('click', function () {
+                const html = document.documentElement;
+                const currentTheme = html.className;
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                html.className = newTheme;
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+
+        // Chat functions
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            messageInput.disabled = true;
+            const sendButton = document.getElementById('send-message');
+            sendButton.disabled = true;
+
+            const userMessage = {
+                role: 'user',
+                content: message
+            };
+            appendMessage(userMessage);
+            messageInput.value = '';
+
+            // Iniciar el proceso con selectTool
+            google.script.run
+                .withSuccessHandler(handleToolSelection)
+                .withFailureHandler(handleError)
+                .selectTool({
+                    query: message,
+                    history: [], // TODO: Implementar historial
+                    attachments: null, // TODO: Implementar attachments
+                    step: 1
+                });
+        }
+
+        function handleToolSelection(response) {
+            // Mostrar el mensaje inicial del bot
+            appendMessage({
+                role: 'bot',
+                content: response.message
+            });
+
+            // Si hay una herramienta para ejecutar, crear su contenedor
+            if (response.tool) {
+                const toolContainer = appendMessage({
+                    role: 'tool',
+                    toolName: response.tool.name,
+                    content: 'Processing...' // Placeholder mientras se ejecuta
+                });
+
+                // Ejecutar la herramienta
+                executeToolAction(response.tool, toolContainer);
+            } else {
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        function executeToolAction(tool, toolContainer) {
+            // Mostrar los parámetros de la tool
+            const paramsContainer = toolContainer.querySelector('.tool-params');
+            if (tool.parameters) {
+                const paramsList = document.createElement('ul');
+                Object.entries(tool.parameters).forEach(([key, value]) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${key}: ${JSON.stringify(value)}`;
+                    paramsList.appendChild(li);
+                });
+                paramsContainer.appendChild(paramsList);
+            }
+
+            // Ejecutar la tool
+            google.script.run
+                .withSuccessHandler((result) => {
+                    // Actualizar el resultado de la tool
+                    const resultContainer = toolContainer.querySelector('.tool-result');
+                    resultContainer.textContent = JSON.stringify(result.output);
+
+                    // Añadir el mensaje de respuesta del bot
+                    appendMessage({
+                        role: 'bot',
+                        content: result.message
+                    });
+
+                    // Si hay otra tool para ejecutar, continuar el proceso
+                    if (result.nextTool) {
+                        google.script.run
+                            .withSuccessHandler(handleToolSelection)
+                            .withFailureHandler(handleError)
+                            .selectTool({
+                                query: messageInput.value,
+                                history: [], // TODO: Implementar historial
+                                attachments: null,
+                                previousToolOutput: result,
+                                step: 2
+                            });
+                    } else {
+                        messageInput.disabled = false;
+                        messageInput.focus();
+                    }
+                })
+                .withFailureHandler(handleError)
+                .executeTool(tool);
+        }
+
+        function handleError(error) {
+            appendMessage({
+                role: 'bot',
+                content: 'Sorry, there was an error processing your request.',
+                error: true
+            });
+            console.error(error);
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
+
+        function appendMessage(message) {
+            const chatMessages = document.getElementById('chat-messages');
+            let template;
+            
+            if (message.role === 'user') {
+                template = document.getElementById('user-message-template');
+            } else if (message.role === 'tool') {
+                template = document.getElementById('tool-message-template');
+            } else {
+                template = document.getElementById('bot-message-template');
+            }
+
+            if (!template) {
+                console.error('Template not found for role:', message.role);
+                return null;
+            }
+
+            const messageElement = template.content.cloneNode(true);
+            const container = messageElement.querySelector('.message-container');
+            
+            if (!container) {
+                console.error('Container not found in template');
+                return null;
+            }
+
+            const contentElement = container.querySelector('.message-content');
+            if (contentElement && message.content) {
+                contentElement.textContent = message.content;
+            }
+
+            if (message.role === 'tool') {
+                const toolName = container.querySelector('.tool-name');
+                if (toolName && message.toolName) {
+                    toolName.textContent = message.toolName;
+                }
+
+                const toolToggle = container.querySelector('.tool-toggle');
+                const toolContent = container.querySelector('.tool-content');
+                if (toolToggle && toolContent) {
+                    toolToggle.addEventListener('click', () => {
+                        toolContent.classList.toggle('expanded');
+                        toolToggle.classList.toggle('expanded');
+                    });
+                }
+            }
+
+            container.classList.add('message-animation');
+            chatMessages.appendChild(container);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return container;
+        }
+
+        function clearChat() {
+            google.script.run
+                .withSuccessHandler(function () {
+                    const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.innerHTML = '';
+                })
+                .withFailureHandler(function (error) {
+                    console.error('Error clearing chat:', error);
+                })
+                .clearChatHistory();
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeUI);
+    </script>
+</body>
+
+</html>
