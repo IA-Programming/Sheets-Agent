@@ -175,6 +175,16 @@
         .tab.active {
             display: flex;
         }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.2s ease-in-out 0s 2;
+        }
     </style>
 </head>
 
@@ -232,7 +242,7 @@
         <section id="settings" class="tab hidden h-full flex flex-col">
             <div class="flex justify-between items-center px-4 py-1">
                 <h2 class="text-sm font-medium">Settings</h2>
-                <button onclick="showTab('chat')"
+                <button onclick="validateAndSaveSettings()"
                     class="px-3 py-1.5 text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors">
                     Done
                 </button>
@@ -377,20 +387,17 @@
 
         //*------------- INITIALIZATION FUNCTION -------------*//
         function initializeui() {
-
             // DOM element references - ensure they exist
             messageInput = document.getElementById('message-input');
-            if (!messageInput) return;
-
             sendButton = document.getElementById('send-message');
             clearButton = document.getElementById('clear-chat');
             themeToggle = document.getElementById('theme-toggle');
 
             // Auto-expand textarea
-            messageInput.addEventListener('input', handleInput);
-
-            // Handle enter to send
-            messageInput.addEventListener('keydown', handleKeyPress);
+            if (messageInput) {
+                messageInput.addEventListener('input', handleInput);
+                messageInput.addEventListener('keydown', handleKeyPress);
+            }
 
             // Theme handling
             initializeTheme();
@@ -399,30 +406,26 @@
             if (sendButton) sendButton.addEventListener('click', sendMessage);
             if (clearButton) clearButton.addEventListener('click', clearChat);
 
-            // Initialize settings
-            const apiKeyInput = document.querySelector('input[type="password"]');
-            const modelSelect = document.querySelector('select[value="gpt-4"]');
-            const customInstructions = document.querySelector('textarea');
-
             // Load saved settings
             const savedSettings = JSON.parse(localStorage.getItem('settings') || '{}');
-            if (savedSettings.apiKey) apiKeyInput.value = savedSettings.apiKey;
-            if (savedSettings.model) modelSelect.value = savedSettings.model;
-            if (savedSettings.instructions) customInstructions.value = savedSettings.instructions;
+            
+            // Cargar valores guardados si existen
+            const apiKeyInput = document.querySelector('input[type="password"]');
+            const modelSelect = document.querySelector('select');
+            const customInstructions = document.querySelector('textarea');
 
-            // Save settings on change
-            function saveSettings() {
-                const settings = {
-                    apiKey: apiKeyInput.value,
-                    model: modelSelect.value,
-                    instructions: customInstructions.value
-                };
-                localStorage.setItem('settings', JSON.stringify(settings));
+            if (apiKeyInput && savedSettings.apiKey) apiKeyInput.value = savedSettings.apiKey;
+            if (modelSelect && savedSettings.model) modelSelect.value = savedSettings.model;
+            if (customInstructions && savedSettings.instructions) {
+                customInstructions.value = savedSettings.instructions;
             }
 
-            apiKeyInput.addEventListener('change', saveSettings);
-            modelSelect.addEventListener('change', saveSettings);
-            customInstructions.addEventListener('change', saveSettings);
+            // Mostrar settings si no hay API key configurada
+            if (!savedSettings.apiKey) {
+                showTab('settings');
+            } else {
+                showTab('chat');
+            }
         }
 
         //*------------- EVENT HANDLING FUNCTIONS -------------*//
@@ -625,6 +628,53 @@
             console.error(error);
             messageInput.disabled = false;
             messageInput.focus();
+        }
+
+        function validateAndSaveSettings() {
+            const apiKeyInput = document.querySelector('input[type="password"]');
+            const modelSelect = document.querySelector('select');
+            const customInstructions = document.querySelector('textarea');
+
+            // Validate API Key
+            if (!apiKeyInput || !apiKeyInput.value.trim()) {
+                apiKeyInput.classList.add('border-red-500', 'dark:border-red-500', 'animate-shake');
+                setTimeout(() => {
+                    apiKeyInput.classList.remove('animate-shake');
+                }, 500);
+                return;
+            }
+
+            // Remove error classes
+            apiKeyInput.classList.remove('border-red-500', 'dark:border-red-500');
+
+            // Save settings both locally and in Google Apps Script
+            const settings = {
+                apiKey: apiKeyInput.value,
+                model: modelSelect ? modelSelect.value : null,
+                instructions: customInstructions ? customInstructions.value : null
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('settings', JSON.stringify(settings));
+
+            // Save to Google Apps Script
+            google.script.run
+                .withSuccessHandler(() => {
+                    showTab('chat');
+                })
+                .withFailureHandler((error) => {
+                    console.error('Error saving settings:', error);
+                    // Mostrar error visual
+                    apiKeyInput.classList.add('border-red-500', 'dark:border-red-500', 'animate-shake');
+                    setTimeout(() => {
+                        apiKeyInput.classList.remove('animate-shake');
+                    }, 500);
+                })
+                .saveUserSettings(
+                    settings.apiKey,
+                    settings.model,
+                    settings.instructions
+                );
         }
 
         //*------------- INITIALIZATION FUNCTION -------------*//
