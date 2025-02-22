@@ -73,7 +73,6 @@ function getAccessToken() {
 }
 
 // AGENT 
-
 async function getAgentResponse(request) {
   const { query, history, attachments, previousToolOutput, step } = request;
 
@@ -90,7 +89,6 @@ async function getAgentResponse(request) {
 
   return response;
 }
-
 
 function selectTool(request) {
   // request debe contener:

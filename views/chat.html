@@ -242,9 +242,10 @@
         <section id="settings" class="tab hidden h-full flex flex-col">
             <div class="flex justify-between items-center px-4 py-1">
                 <h2 class="text-sm font-medium">Settings</h2>
-                <button onclick="validateAndSaveSettings()"
-                    class="px-3 py-1.5 text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors">
-                    Done
+                <button id="settings-done" onclick="validateAndSaveSettings()"
+                    class="px-3 py-1.5 text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    <span>Done</span>
+                    <i data-lucide="loader-2" class="w-3 h-3 animate-spin hidden"></i>
                 </button>
             </div>
             <div class="p-4 space-y-4">
@@ -634,6 +635,8 @@
             const apiKeyInput = document.querySelector('input[type="password"]');
             const modelSelect = document.querySelector('select');
             const customInstructions = document.querySelector('textarea');
+            const doneButton = document.getElementById('settings-done');
+            const loadingIcon = doneButton.querySelector('svg');
 
             // Validate API Key
             if (!apiKeyInput || !apiKeyInput.value.trim()) {
@@ -646,6 +649,10 @@
 
             // Remove error classes
             apiKeyInput.classList.remove('border-red-500', 'dark:border-red-500');
+
+            // Disable button and show loading
+            doneButton.disabled = true;
+            loadingIcon.classList.remove('hidden');
 
             // Save settings both locally and in Google Apps Script
             const settings = {
@@ -660,10 +667,16 @@
             // Save to Google Apps Script
             google.script.run
                 .withSuccessHandler(() => {
+                    // Enable button and hide loading
+                    doneButton.disabled = false;
+                    loadingIcon.classList.add('hidden');
                     showTab('chat');
                 })
                 .withFailureHandler((error) => {
                     console.error('Error saving settings:', error);
+                    // Enable button and hide loading
+                    doneButton.disabled = false;
+                    loadingIcon.classList.add('hidden');
                     // Mostrar error visual
                     apiKeyInput.classList.add('border-red-500', 'dark:border-red-500', 'animate-shake');
                     setTimeout(() => {
