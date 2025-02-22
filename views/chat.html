@@ -48,16 +48,13 @@
                             popover: 'hsl(0 0% 95%)',
                             'popover-foreground': 'hsl(0 0% 20%)',
                             input: 'hsla(0 0% 90%)',
-                            ring: 'hsl(0 0% 20%)',
+                            ring: 'hsl(0 0% 92%)',
                         }
                     }
                 }
             }
         }
     </script>
-    <!-- Icons -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
     <!-- Inline CSS -->
     <style>
         :root {
@@ -74,7 +71,7 @@
             --popover: 0 0% 95%;
             --popover-foreground: 0 0% 20%;
             --input: 0 0% 90%;
-            --ring: 0 0% 20%;
+            --ring: 0 0% 92%;
         }
 
         .dark {
@@ -92,6 +89,17 @@
             --popover-foreground: 0 0% 90%;
             --input: 0 0% 26%;
             --ring: 0 0% 20%;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            outline-style: none;
+        }
+
+        select {
+            border-radius: 0;
         }
 
         /* Basic scrollbar styling */
@@ -140,6 +148,12 @@
         }
 
         /* Tool message styles */
+        .tool-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+
         .tool-content.expanded {
             max-height: 300px;
             overflow-y: auto;
@@ -152,11 +166,20 @@
         .tool-toggle i {
             transition: transform 0.3s ease;
         }
+
+        /* Tab styles */
+        .tab {
+            display: none;
+        }
+
+        .tab.active {
+            display: flex;
+        }
     </style>
 </head>
 
 <body class="bg-light-background dark:bg-dark-background text-light-foreground dark:text-dark-foreground">
-    <!-- Top bar -->
+    <!-- * TOP BAR * -->
     <header class="px-3 py-2 flex justify-between items-center">
         <h1 class="text-sm font-medium">GridPilot</h1>
         <div class="flex items-center gap-2">
@@ -171,79 +194,191 @@
                 <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
                 <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
             </button>
-            <button
+            <button onclick="showTab('settings')"
                 class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
         </div>
     </header>
 
-    <!-- Chat container -->
-    <section class="flex flex-col h-[calc(100vh-48px)]">
-        <!-- Message list -->
-        <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-            <!-- Messages will be inserted here dynamically -->
-        </div>
+    <!-- * MAIN CONTAINER * -->
+    <main class="h-[calc(100vh-48px)]">
+        <!-- CHAT TAB -->
+        <section id="chat" class="tab active h-full flex flex-col">
+            <!-- MESSAGE LIST -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+                <!-- Messages will be inserted here dynamically -->
+            </div>
 
-        <!-- Input area -->
-        <div class="px-2 pb-2">
-            <div
-                class="flex flex-col bg-light-popover dark:bg-dark-popover rounded-md border border-light-border dark:border-dark-border">
-                <textarea id="message-input"
-                    class="w-full resize-none outline-none bg-transparent p-2 min-h-[44px] max-h-32 text-sm text-light-foreground dark:text-dark-foreground placeholder:text-light-muted-foreground dark:placeholder:text-dark-muted-foreground"
-                    placeholder="Type a message..."></textarea>
-                <div class="px-2 py-1.5 flex justify-end border-t border-light-border dark:border-dark-border">
-                    <button id="send-message"
-                        class="px-1 py-0.5 leading-tight text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                        disabled>
-                        Submit <span class="opacity-60">↵</span>
-                    </button>
+            <!-- INPUT AREA -->
+            <div class="px-2 pb-2">
+                <div
+                    class="flex flex-col bg-light-popover dark:bg-dark-popover rounded-md border border-light-border dark:border-dark-border">
+                    <textarea id="message-input"
+                        class="w-full resize-none outline-none bg-transparent p-2 min-h-[44px] max-h-32 text-sm text-light-foreground dark:text-dark-foreground placeholder:text-light-muted-foreground dark:placeholder:text-dark-muted-foreground"
+                        placeholder="Type a message..."></textarea>
+                    <div class="px-2 py-1.5 flex justify-end border-t border-light-border dark:border-dark-border">
+                        <button id="send-message"
+                            class="px-1 py-0.5 leading-tight text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            disabled>
+                            Submit <span class="opacity-60">↵</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Message templates -->
+        <!-- SETTINGS TAB -->
+        <section id="settings" class="tab hidden h-full flex flex-col">
+            <div class="flex justify-between items-center px-4 py-1">
+                <h2 class="text-sm font-medium">Settings</h2>
+                <button onclick="showTab('chat')"
+                    class="px-3 py-1.5 text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors">
+                    Done
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <!-- API Provider -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">API Provider</label>
+                    <select
+                        class="w-full px-1 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm">
+                        <option value="openai">Granite IBM</option>
+                    </select>
+                </div>
+
+                <!-- API Key -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">API Key</label>
+                    <input type="password" placeholder="Enter API Key..."
+                        class="w-full px-2 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm">
+                    <p class="text-xs text-light-muted-foreground dark:text-dark-muted-foreground">
+                        This key is stored locally and only used to make API requests.
+                    </p>
+                </div>
+
+                <!-- Model -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">Model</label>
+                    <select
+                        class="w-full px-1 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border">
+                        <option value="granite-3.1">Granite 3.1-8B-Instruct</option>
+                    </select>
+                    <div class="space-y-0.5 text-xs text-light-muted-foreground dark:text-dark-muted-foreground">
+                        <p class="flex items-center gap-1">
+                            <i data-lucide="check" class="w-3 h-3 text-green-500"></i>
+                            Supports images
+                        </p>
+                        <p class="flex items-center gap-1">
+                            <i data-lucide="x" class="w-3 h-3 text-red-500"></i>
+                            Does not support computer use
+                        </p>
+                        <p>Max output: 4,096 tokens</p>
+                        <p>Input price: $2.50/million tokens</p>
+                        <p>Output price: $10.00/million tokens</p>
+                    </div>
+                </div>
+
+                <!-- Custom Instructions -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">Custom
+                        Instructions</label>
+                    <textarea
+                        placeholder="e.g. &quot;Speak in Spanish&quot;"
+                        class="w-full h-24 px-2 py-1.5 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm resize-none"></textarea>
+                    <p class="text-xs text-light-muted-foreground dark:text-dark-muted-foreground">
+                        These instructions are added to the end of the system prompt sent with every request.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MESSAGE TEMPLATES -->
     <template id="user-message-template">
-        <div class="message-container mb-4 w-full bg-light-popover dark:bg-dark-popover border border-light-input dark:border-dark-input rounded-md px-3 py-2 text-sm break-words">
+        <div
+            class="message-container mb-1 w-full leading-tight bg-light-input dark:bg-dark-input border border-light-input dark:border-dark-input rounded-sm px-2 py-1 text-sm break-words">
             <p class="message-content"></p>
         </div>
     </template>
 
     <template id="bot-message-template">
-        <div class="message-container mb-4 w-full text-sm break-words">
+        <div class="message-container mb-1 w-full text-sm break-words leading-tight">
             <p class="message-content"></p>
             <div class="tool-sequence"></div>
         </div>
     </template>
 
     <template id="tool-message-template">
-        <div class="message-container mb-4 w-full bg-light-popover dark:bg-dark-popover border border-light-input dark:border-dark-input rounded-md text-sm break-words">
-            <div class="flex justify-between items-center px-3 py-2 border-b border-light-border dark:border-dark-border">
-                <span class="tool-name font-medium text-light-primary dark:text-dark-primary"></span>
-                <button class="tool-toggle p-1 hover:bg-light-muted dark:hover:bg-dark-muted rounded-sm transition-colors">
-                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        <div
+            class="message-container mb-1 w-full leading-tight border border-light-input dark:border-dark-input rounded-sm text-sm break-words">
+            <!-- Tool header - Fixed -->
+            <div
+                class="flex justify-between items-center px-2 py-1 leading-tight border-b border-light-border dark:border-dark-border sticky top-0 bg-light-background dark:bg-dark-background z-10">
+                <!-- Tool name and loading -->
+                <div class="flex items-center gap-2">
+                    <i data-lucide="loader-2"
+                        class="loading-icon w-3 h-3 text-light-primary dark:text-dark-primary animate-spin hidden"></i>
+                    <span class="tool-name text-light-muted-foreground dark:text-dark-muted-foreground"></span>
+                </div>
+                <!-- Tool toggle -->
+                <button
+                    class="tool-toggle p-0.5 hover:bg-light-muted dark:hover:bg-dark-muted rounded-sm transition-colors">
+                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
                 </button>
             </div>
-            <div class="tool-content px-3 py-2">
+            <!-- Tool content - Content scrollable -->
+            <div
+                class="tool-content bg-light-popover dark:bg-dark-popover px-2 py-1 max-h-0 overflow-hidden transition-[max-height] duration-300 ease-in-out">
                 <div class="message-content text-light-muted-foreground dark:text-dark-muted-foreground"></div>
-                <div class="tool-params mt-2 text-light-muted-foreground dark:text-dark-muted-foreground"></div>
-                <div class="tool-result mt-2"></div>
             </div>
         </div>
     </template>
 
     <!-- Inline scripts -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- UI SCRIPT -->
     <script>
-        // Required global functions
+        //*------------- UI FUNCTIONS -------------*//
+        lucide.createIcons();
+
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.className = savedTheme;
+
+            themeToggle.addEventListener('click', function () {
+                const html = document.documentElement;
+                const currentTheme = html.className;
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                html.className = newTheme;
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.id === tabName) {
+                    tab.classList.remove('hidden');
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.add('hidden');
+                    tab.classList.remove('active');
+                }
+            });
+
+            // Reinitialize Lucide icons
+            lucide.createIcons();
+        }
+    </script>
+    <!-- MAIN SCRIPT -->
+    <script>
+        //*------------- GLOBAL VARIABLES -------------*//
         let messageInput, sendButton, clearButton, themeToggle;
 
-        // Function to initialize UI
-        function initializeUI() {
-            // Initialize Lucide icons
-            lucide.createIcons();
+        //*------------- INITIALIZATION FUNCTION -------------*//
+        function initializeui() {
 
-            // DOM element references - asegurarse de que existan
+            // DOM element references - ensure they exist
             messageInput = document.getElementById('message-input');
             if (!messageInput) return;
 
@@ -257,18 +392,40 @@
             // Handle enter to send
             messageInput.addEventListener('keydown', handleKeyPress);
 
-            // Toggle for sources
-            document.addEventListener('click', handleSourcesToggle);
-
             // Theme handling
             initializeTheme();
 
             // Action buttons
             if (sendButton) sendButton.addEventListener('click', sendMessage);
             if (clearButton) clearButton.addEventListener('click', clearChat);
+
+            // Initialize settings
+            const apiKeyInput = document.querySelector('input[type="password"]');
+            const modelSelect = document.querySelector('select[value="gpt-4"]');
+            const customInstructions = document.querySelector('textarea');
+
+            // Load saved settings
+            const savedSettings = JSON.parse(localStorage.getItem('settings') || '{}');
+            if (savedSettings.apiKey) apiKeyInput.value = savedSettings.apiKey;
+            if (savedSettings.model) modelSelect.value = savedSettings.model;
+            if (savedSettings.instructions) customInstructions.value = savedSettings.instructions;
+
+            // Save settings on change
+            function saveSettings() {
+                const settings = {
+                    apiKey: apiKeyInput.value,
+                    model: modelSelect.value,
+                    instructions: customInstructions.value
+                };
+                localStorage.setItem('settings', JSON.stringify(settings));
+            }
+
+            apiKeyInput.addEventListener('change', saveSettings);
+            modelSelect.addEventListener('change', saveSettings);
+            customInstructions.addEventListener('change', saveSettings);
         }
 
-        // Event handling functions
+        //*------------- EVENT HANDLING FUNCTIONS -------------*//
         function handleInput() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 96) + 'px';
@@ -284,31 +441,11 @@
             }
         }
 
-        function handleSourcesToggle(e) {
-            if (e.target.classList.contains('sources-toggle')) {
-                const sourcesList = e.target.nextElementSibling;
-                sourcesList.classList.toggle('hidden');
-            }
-        }
-
-        function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.className = savedTheme;
-
-            themeToggle.addEventListener('click', function () {
-                const html = document.documentElement;
-                const currentTheme = html.className;
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                html.className = newTheme;
-                localStorage.setItem('theme', newTheme);
-            });
-        }
-
-        // Chat functions
+        //*------------- CHAT FUNCTIONS -------------*//
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
-            
+
             if (!message) return;
 
             messageInput.disabled = true;
@@ -322,34 +459,35 @@
             appendMessage(userMessage);
             messageInput.value = '';
 
-            // Iniciar el proceso con selectTool
+            // Start the process with selectTool
             google.script.run
                 .withSuccessHandler(handleToolSelection)
                 .withFailureHandler(handleError)
                 .selectTool({
                     query: message,
-                    history: [], // TODO: Implementar historial
-                    attachments: null, // TODO: Implementar attachments
+                    history: [], // TODO: Implement history
+                    attachments: null, // TODO: Implement attachments
                     step: 1
                 });
         }
 
+        //*------------- AGENT FUNCTIONS -------------*//
         function handleToolSelection(response) {
-            // Mostrar el mensaje inicial del bot
+            // Show the initial bot message
             appendMessage({
                 role: 'bot',
                 content: response.message
             });
 
-            // Si hay una herramienta para ejecutar, crear su contenedor
+            // If there is a tool to execute, create its container
             if (response.tool) {
                 const toolContainer = appendMessage({
                     role: 'tool',
                     toolName: response.tool.name,
-                    content: 'Processing...' // Placeholder mientras se ejecuta
+                    content: 'Processing...'
                 });
 
-                // Ejecutar la herramienta
+                // Execute the tool
                 executeToolAction(response.tool, toolContainer);
             } else {
                 messageInput.disabled = false;
@@ -358,39 +496,32 @@
         }
 
         function executeToolAction(tool, toolContainer) {
-            // Mostrar los parámetros de la tool
-            const paramsContainer = toolContainer.querySelector('.tool-params');
-            if (tool.parameters) {
-                const paramsList = document.createElement('ul');
-                Object.entries(tool.parameters).forEach(([key, value]) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${key}: ${JSON.stringify(value)}`;
-                    paramsList.appendChild(li);
-                });
-                paramsContainer.appendChild(paramsList);
-            }
-
-            // Ejecutar la tool
             google.script.run
                 .withSuccessHandler((result) => {
-                    // Actualizar el resultado de la tool
-                    const resultContainer = toolContainer.querySelector('.tool-result');
+                    // Update the tool result
+                    const resultContainer = toolContainer.querySelector('.message-content');
                     resultContainer.textContent = JSON.stringify(result.output);
 
-                    // Añadir el mensaje de respuesta del bot
+                    // Ocultar el icono de carga
+                    const loadingIcon = toolContainer.querySelector('.loading-icon');
+                    if (loadingIcon) {
+                        loadingIcon.classList.add('hidden');
+                    }
+
+                    // Add the bot response message
                     appendMessage({
                         role: 'bot',
                         content: result.message
                     });
 
-                    // Si hay otra tool para ejecutar, continuar el proceso
+                    // If there is another tool to execute, continue the process
                     if (result.nextTool) {
                         google.script.run
                             .withSuccessHandler(handleToolSelection)
                             .withFailureHandler(handleError)
                             .selectTool({
                                 query: messageInput.value,
-                                history: [], // TODO: Implementar historial
+                                history: [], // TODO: Implement history
                                 attachments: null,
                                 previousToolOutput: result,
                                 step: 2
@@ -400,25 +531,22 @@
                         messageInput.focus();
                     }
                 })
-                .withFailureHandler(handleError)
+                .withFailureHandler((error) => {
+                    // Ocultar el icono de carga en caso de error también
+                    const loadingIcon = toolContainer.querySelector('.loading-icon');
+                    if (loadingIcon) {
+                        loadingIcon.classList.add('hidden');
+                    }
+                    handleError(error);
+                })
                 .executeTool(tool);
         }
 
-        function handleError(error) {
-            appendMessage({
-                role: 'bot',
-                content: 'Sorry, there was an error processing your request.',
-                error: true
-            });
-            console.error(error);
-            messageInput.disabled = false;
-            messageInput.focus();
-        }
-
+        //*------------- MESSAGE FUNCTIONS -------------*//
         function appendMessage(message) {
             const chatMessages = document.getElementById('chat-messages');
             let template;
-            
+
             if (message.role === 'user') {
                 template = document.getElementById('user-message-template');
             } else if (message.role === 'tool') {
@@ -434,7 +562,7 @@
 
             const messageElement = template.content.cloneNode(true);
             const container = messageElement.querySelector('.message-container');
-            
+
             if (!container) {
                 console.error('Container not found in template');
                 return null;
@@ -451,6 +579,12 @@
                     toolName.textContent = message.toolName;
                 }
 
+                // Mostrar el icono de carga si el contenido es "Processing..."
+                const loadingIcon = container.querySelector('.loading-icon');
+                if (loadingIcon && message.content === 'Processing...') {
+                    loadingIcon.classList.remove('hidden');
+                }
+
                 const toolToggle = container.querySelector('.tool-toggle');
                 const toolContent = container.querySelector('.tool-content');
                 if (toolToggle && toolContent) {
@@ -464,7 +598,8 @@
             container.classList.add('message-animation');
             chatMessages.appendChild(container);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
+            lucide.createIcons();
+
             return container;
         }
 
@@ -480,8 +615,20 @@
                 .clearChatHistory();
         }
 
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', initializeUI);
+        //*------------- AUX FUNCTIONS -------------*//
+        function handleError(error) {
+            appendMessage({
+                role: 'bot',
+                content: 'Sorry, there was an error processing your request.',
+                error: true
+            });
+            console.error(error);
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
+
+        //*------------- INITIALIZATION FUNCTION -------------*//
+        document.addEventListener('DOMContentLoaded', initializeui);
     </script>
 </body>
 
