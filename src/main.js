@@ -13,9 +13,11 @@ function showChatSidebar() {
 }
 
 // USER SETTINGS
-function saveUserSettings(apiKey, model, customInstructions) {
+function saveUserSettings(apiKey, model, customInstructions, apiUrl, projectId) {
   var userProps = PropertiesService.getUserProperties();
-  userProps.setProperty("API_PROVIDER", "granite-ibm");
+  userProps.setProperty("API_PROVIDER", "ibm-granite");
+  userProps.setProperty("PROJECT_ID", projectId);
+  userProps.setProperty("API_URL", apiUrl);
   userProps.setProperty("API_KEY", apiKey);
   userProps.setProperty("MODEL", model);
   userProps.setProperty("CUSTOM_INSTRUCTIONS", customInstructions);
@@ -25,6 +27,8 @@ function getUserSettings() {
   var userProps = PropertiesService.getUserProperties();
   return {
     apiProvider: userProps.getProperty("API_PROVIDER"),
+    projectId: userProps.getProperty("PROJECT_ID"),
+    apiUrl: userProps.getProperty("API_URL"),
     apiKey: userProps.getProperty("API_KEY"),
     model: userProps.getProperty("MODEL"),
     customInstructions: userProps.getProperty("CUSTOM_INSTRUCTIONS")
@@ -71,6 +75,8 @@ function getAccessToken() {
     return { type: 3, message: "Error retrieving token" };
   }
 }
+
+
 
 // AGENT 
 async function getAgentResponse(request) {
@@ -154,4 +160,4 @@ function executeTool(toolRequest) {
 // CHAT HISTORY
 function clearChatHistory() {
   return true;
-} 
+}
