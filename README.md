@@ -2,6 +2,22 @@
 
 An AI-powered assistant for Google Sheets that helps you analyze data, create reports, and access real-time information through natural language conversations.
 
+[![GridPilot UI](.public\GridPilot-UI.gif)](https://docs.google.com/spreadsheets/d/1vwNlE_YIiAWc4GJ6VqTPAR2Tuj9-qIi_t9lGuW67JNg/edit?usp=sharing)
+
+## Table of Contents 📑
+- [Overview](#overview-)
+- [Features](#features-)
+- [Installation](#installation-)
+  - [Easy Installation](#easy-installation)
+  - [Manual Installation](#manual-installation)
+- [Usage](#usage-)
+- [Technical Details](#technical-details-)
+- [Security](#security-)
+- [Contributing](#contributing-)
+- [Support](#support-)
+- [License](#license-)
+- [Support Us](#support-us-)
+
 ## Overview 🌟
 
 GridPilot integrates directly into Google Sheets as a sidebar chat interface, allowing you to:
@@ -20,7 +36,6 @@ GridPilot integrates directly into Google Sheets as a sidebar chat interface, al
 
 - **Integrated Tools** 🛠️
   - Web search capabilities via Tavily API
-  - Real-time weather information
   - Spreadsheet data analysis
   - Report generation
 
@@ -31,6 +46,29 @@ GridPilot integrates directly into Google Sheets as a sidebar chat interface, al
   - Secure API key management
 
 ## Installation 🔧
+
+### Easy Installation
+
+1. **Open Google Sheet Demo Sample** -> [Here](https://docs.google.com/spreadsheets/d/1vwNlE_YIiAWc4GJ6VqTPAR2Tuj9-qIi_t9lGuW67JNg/edit?usp=sharing)
+
+2. **Make a copy of the sheet**
+
+<img src=".public/Copying-Sheet.gif" alt="Clone Sheet" width="720"/>
+
+3. **Click on the GridPilot Menu Tab -> Open Chat**
+
+4. **Give all the permissions**
+
+<img src=".public/Setting-Permissions.gif" alt="Give Permissions" width="720"/>
+
+5. **Setup all the API keys**
+
+<img src=".public/Settings-GridPilot.gif" alt="Setup API Keys" width="600"/>
+
+6. **Start Chatting**
+
+
+### Manual Installation
 
 1. **Open your Google Sheet**
 
@@ -60,7 +98,6 @@ GridPilot integrates directly into Google Sheets as a sidebar chat interface, al
    - Type natural language queries in the chat
    - Ask for data analysis
    - Request web searches
-   - Get weather information
 
 ## Technical Details 💻
 
