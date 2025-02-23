@@ -2,7 +2,7 @@
 
 An AI-powered assistant for Google Sheets that helps you analyze data, create reports, and access real-time information through natural language conversations.
 
-[![GridPilot UI](.public\GridPilot-UI.gif)](https://docs.google.com/spreadsheets/d/1vwNlE_YIiAWc4GJ6VqTPAR2Tuj9-qIi_t9lGuW67JNg/edit?usp=sharing)
+[![GridPilot UI](./.public/GridPilot-UI.gif)](https://docs.google.com/spreadsheets/d/1vwNlE_YIiAWc4GJ6VqTPAR2Tuj9-qIi_t9lGuW67JNg/edit?usp=sharing)
 
 ## Table of Contents 📑
 - [Overview](#overview-)
