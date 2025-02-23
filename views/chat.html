@@ -215,6 +215,7 @@
                 <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
             </button>
             <button onclick="showTab('settings')"
+                title="Settings"
                 class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
@@ -239,7 +240,7 @@
                         placeholder="Type a message..."></textarea>
                     <div class="px-2 py-1.5 flex justify-between border-t border-light-border dark:border-dark-border">
                         <!-- Botón de attachments -->
-                        <button id="attachment-button" title="Coming soon"
+                        <button id="attachment-button" title="Coming soon" disabled
                             class="px-1 py-0.5 leading-tight text-xs text-light-muted-foreground dark:text-dark-muted-foreground hover:text-light-foreground dark:hover:text-dark-foreground rounded transition-colors flex items-center gap-1">
                             <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
                             <span>Attach</span>
@@ -441,6 +442,22 @@
             sendButton = document.getElementById('send-message');
             clearButton = document.getElementById('clear-chat');
             themeToggle = document.getElementById('theme-toggle');
+            const attachButton = document.getElementById('attachment-button');
+            const settingsButton = document.querySelector('button[onclick="showTab(\'settings\')"]');
+            const newChatButton = document.getElementById('new-chat');
+
+            // Deshabilitar todos los controles mientras se cargan las configuraciones
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            attachButton.disabled = true;
+            settingsButton.disabled = true;
+            newChatButton.disabled = true;
+            themeToggle.disabled = true;
+
+            // Agregar clase visual de deshabilitado
+            [attachButton, settingsButton, newChatButton, themeToggle].forEach(button => {
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+            });
 
             // Auto-expand textarea
             if (messageInput) {
@@ -458,6 +475,21 @@
             // Cargar configuraciones guardadas
             google.script.run
                 .withSuccessHandler(function (settings) {
+                    // Habilitar todos los controles
+                    messageInput.disabled = false;
+                    attachButton.disabled = false;
+                    settingsButton.disabled = false;
+                    newChatButton.disabled = false;
+                    themeToggle.disabled = false;
+
+                    // Remover clase visual de deshabilitado
+                    [attachButton, settingsButton, newChatButton, themeToggle].forEach(button => {
+                        button.classList.remove('opacity-50', 'cursor-not-allowed');
+                    });
+
+                    // El botón de enviar se maneja por handleInput()
+                    handleInput.call(messageInput);
+
                     // Mostrar settings si falta alguna configuración requerida
                     if (!settings.apiKey || !settings.apiUrl || !settings.projectId || !settings.tavilyApiKey) {
                         showTab('settings');
