@@ -280,15 +280,13 @@ function buildInitialMessages(query, history = [], systemPrompt = SYSTEM_PROMPTS
         content: `${systemPrompt} ${getUserSettings().customInstructions || ''}`
     };
 
-    // Remove the first message if history exists and starts with a system prompt
-    if (history.length > 0 && history[0].role === "system") {
-        history[0] = updatedSystemMessage;
-    } else {
-        history.unshift(updatedSystemMessage);
-    }
+    // Filter out any existing system messages and get last 5 non-system messages
+    const recentHistory = history
+        .filter(msg => msg.role !== "system")
+        .slice(-5);
 
-    // Construct the final messages array
-    const messages = [...history];
+    // Construct the final messages array starting with system prompt
+    const messages = [updatedSystemMessage, ...recentHistory];
 
     // Add query only if provided
     if (query) {
