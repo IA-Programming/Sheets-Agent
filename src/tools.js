@@ -261,7 +261,7 @@ function codeGenerator(description) {
             1. If no specific sheet is mentioned, work with the active sheet (SpreadsheetApp.getActive().getActiveSheet()).
             2. For charts, use sheet.newChart().addRange(sheet.getRange(startRow, startColumn, numRows, numColumns)).setPosition(row, column, offsetX, offsetY).build(), then insert with sheet.insertChart(chart).
             3. For tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data), **not sheet.newTable()**.
-            4. For images, use sheet.insertImage(image, column, row).
+            4. For images, use sheet.insertImage(image_url, column, row).
             5. For text, use sheet.getRange(row, column).setValue(text), **not setText()**.
             6. For formulas, use sheet.getRange(row, column).setFormula(formula).
             7. For data validation, use sheet.getRange(startRow, startColumn, numRows, numColumns).setDataValidation(rule).
