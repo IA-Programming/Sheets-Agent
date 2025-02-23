@@ -691,6 +691,18 @@
                     toolName.textContent = message.toolName;
                 }
 
+                // Reinitialize the loading icon
+                const loadingIcon = container.querySelector('.loading-icon');
+                if (loadingIcon && message.content === 'Processing...') {
+                    loadingIcon.classList.remove('hidden');
+                    lucide.createIcons({
+                        icons: {
+                            'loader-2': true
+                        },
+                        nameAttr: 'data-lucide'
+                    });
+                }
+
                 const toolToggle = container.querySelector('.tool-toggle');
                 const toolContent = container.querySelector('.tool-content');
                 if (toolToggle && toolContent) {

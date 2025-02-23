@@ -39,14 +39,14 @@ const toolDefinitions = [
                     },
                     additionalInfo: {
                         type: "object",
-                        description: "additional information needed to complete the task (like search results, data from other tools, information from the user, etc)",
+                        description: "additional information needed to complete the task (like search results, urls, data from other tools, information from the user, etc)",
                     },
                     requires_additional_tool: {
                         type: "boolean",
                         description: "Indicates if another tool will be needed after this execution to complete the task"
                     }
                 },
-                required: ["taskDescription", "message", "requires_additional_tool"]
+                required: ["taskDescription", "message", "additionalInfo", "requires_additional_tool"]
             }
         }
     },
