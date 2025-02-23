@@ -214,8 +214,7 @@
                 <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
                 <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
             </button>
-            <button onclick="showTab('settings')"
-                title="Settings"
+            <button onclick="showTab('settings')" title="Settings"
                 class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
@@ -587,13 +586,14 @@
                     });
 
                     // Check if we need to continue with another tool
-                    if (result.nextTool) {
+                    if (tool.parameters.requires_additional_tool) {
                         // If more tools needed, call selectTool without the original query
                         google.script.run
                             .withSuccessHandler(handleToolSelection)
                             .withFailureHandler(handleError)
                             .selectTool({
-                                attachments: null
+                                attachments: null,
+                                isContinuation: tool.parameters.requires_additional_tool
                             });
                     } else {
                         // If done, enable input

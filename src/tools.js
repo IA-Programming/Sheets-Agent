@@ -37,6 +37,10 @@ const toolDefinitions = [
                         type: "string",
                         description: "A message to display to the user after the code has been executed"
                     },
+                    additionalInfo: {
+                        type: "object",
+                        description: "additional information needed to complete the task (like search results, data from other tools, information from the user, etc)",
+                    },
                     requires_additional_tool: {
                         type: "boolean",
                         description: "Indicates if another tool will be needed after this execution to complete the task"
@@ -50,7 +54,7 @@ const toolDefinitions = [
         type: "function",
         function: {
             name: "webSearch",
-            description: "Performs a web search using Tavily API and returns relevant results",
+            description: "Performs a web search using Tavily API and returns relevant results with an AI-generated response",
             parameters: {
                 type: "object",
                 properties: {
@@ -67,22 +71,19 @@ const toolDefinitions = [
                         enum: ["basic", "advanced"],
                         description: "Depth of search - basic is faster, advanced is more thorough",
                     },
-                    message: {
-                        type: "string",
-                        description: "A message to display to the user after the web search has been performed"
-                    },
                     requires_additional_tool: {
                         type: "boolean",
                         description: "Indicates if another tool will be needed after this execution to complete the task"
                     }
                 },
-                required: ["query", "message", "requires_additional_tool"]
+                required: ["query", "requires_additional_tool"]
             }
         }
     },
 ];
 
-// Tool Implementations
+// *------------  GREETING  ------------ * //
+
 function greeting({ name = '', language = 'en' }) {
     const greetings = {
         en: {
@@ -106,7 +107,91 @@ function greeting({ name = '', language = 'en' }) {
     };
 }
 
-function webSearch({ query, max_results = 5, search_depth = "basic", message, requires_additional_tool = false }) {
+// *------------  WEB SEARCH  ------------ * //
+
+function generateSearchResponse(query, searchResults) {
+    const settings = getUserSettings();
+    const tokenResponse = getAccessToken();
+
+    if (tokenResponse.type !== 1) {
+        throw new Error(tokenResponse.message);
+    }
+
+    const url = `${settings.apiUrl}/ml/v1/text/generation?version=2023-05-29`;
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokenResponse.accessToken}`
+    };
+
+    const systemPrompt = `
+        Role: You are a helpful AI assistant that summarizes web search results.
+        Task: Generate a brief, direct response to the user's query using the search results provided.
+        Guidelines:
+        - Keep responses concise and focused on answering the query
+        - Prioritize the most relevant information
+        - Use natural, conversational language
+        - Avoid unnecessary details or explanations
+        - If search results don't answer the query, say so clearly
+
+        User Query: ${query}
+        Search Results: ${JSON.stringify(searchResults)}
+
+        Response:`;
+
+    const body = {
+        input: systemPrompt,
+        parameters: {
+            decoding_method: "greedy",
+            max_new_tokens: 900,
+            min_new_tokens: 0,
+            stop_sequences: [],
+            repetition_penalty: 1
+        },
+        model_id: "ibm/granite-3-8b-instruct",
+        project_id: settings.projectId,
+        moderations: {
+            hap: {
+                input: { enabled: true, threshold: 0.5, mask: { remove_entity_value: true } },
+                output: { enabled: true, threshold: 0.5, mask: { remove_entity_value: true } }
+            },
+            pii: {
+                input: { enabled: true, threshold: 0.5, mask: { remove_entity_value: true } },
+                output: { enabled: true, threshold: 0.5, mask: { remove_entity_value: true } }
+            }
+        }
+    };
+
+    try {
+        const response = UrlFetchApp.fetch(url, {
+            method: 'POST',
+            headers: headers,
+            payload: JSON.stringify(body),
+            muteHttpExceptions: true
+        });
+
+        const responseText = response.getContentText();
+        console.log('API Response:', responseText);
+
+        if (response.getResponseCode() !== 200) {
+            throw new Error(`API request failed with status ${response.getResponseCode()}`);
+        }
+
+        const responseData = JSON.parse(responseText);
+        const generatedResponse = responseData.results?.[0]?.generated_text;
+
+        if (!generatedResponse) {
+            throw new Error('No response was generated');
+        }
+
+        return generatedResponse.trim();
+    } catch (error) {
+        console.error('Error generating search response:', error);
+        throw error;
+    }
+}
+
+function webSearch({ query, max_results = 5, search_depth = "basic", requires_additional_tool = false }) {
     const settings = getUserSettings();
     const tavilyApiKey = settings.tavilyApiKey;
 
@@ -136,12 +221,12 @@ function webSearch({ query, max_results = 5, search_depth = "basic", message, re
 
     try {
         const response = UrlFetchApp.fetch(apiUrl, options);
-        const result = JSON.parse(response.getContentText());
+        const searchResults = JSON.parse(response.getContentText());
 
         return {
             type: 1,
-            message: message,
-            data: result,
+            message: searchResults.answer,
+            data: JSON.stringify(searchResults.results),
             nextTool: requires_additional_tool
         };
     } catch (error) {
@@ -151,6 +236,8 @@ function webSearch({ query, max_results = 5, search_depth = "basic", message, re
         };
     }
 }
+
+// *------------  CODE GENERATION  ------------ * //
 
 function codeGenerator(description) {
     const settings = getUserSettings();
@@ -174,19 +261,19 @@ function codeGenerator(description) {
             1. If no specific sheet is mentioned, work with the active sheet (SpreadsheetApp.getActive().getActiveSheet()).
             2. For charts, use sheet.newChart().addRange(sheet.getRange(startRow, startColumn, numRows, numColumns)).setPosition(row, column, offsetX, offsetY).build(), then insert with sheet.insertChart(chart).
             3. For tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data), **not sheet.newTable()**.
-            4. For images, use sheet.insertImage(image, column, row).
-            5. For text, use sheet.getRange(row, column).setValue(text), **not setText()**.
-            6. For formulas, use sheet.getRange(row, column).setFormula(formula).
-            7. For data validation, use sheet.getRange(startRow, startColumn, numRows, numColumns).setDataValidation(rule).
-            8. For conditional formatting, use sheet.getRange(startRow, startColumn, numRows, numColumns).setBackground(color) or setFontColor(color).
-            9. For named ranges, use sheet.getRange(startRow, startColumn, numRows, numColumns).setName(name).
-            10. For named formulas, use SpreadsheetApp.getActiveSpreadsheet().addNamedRange(name, sheet.getRange(startRow, startColumn, numRows, numColumns)).
-            11. For named tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data) and optionally apply formatting.
-            12. For named charts, create a chart as in point 2 and assign a name using sheet.getCharts().
-            13. For named images, insert an image as in point 4 and rename manually if necessary.
-            14. For named data validation, apply validation as in point 7 and save it under a named range if needed.
-            15. For named conditional formatting, apply formatting as in point 8 and use an approach like named ranges if required.
-
+            4. Always check that the data array matches the range size exactly (getRange(1, 1, 6, 1).setValues([['data_1'], ..., ['data_6']]));
+            5. For images, use sheet.insertImage(image, column, row).
+            6. For text, use sheet.getRange(row, column).setValue(text), **not setText()**.
+            7. For formulas, use sheet.getRange(row, column).setFormula(formula).
+            8. For data validation, use sheet.getRange(startRow, startColumn, numRows, numColumns).setDataValidation(rule).
+            9. For conditional formatting, use sheet.getRange(startRow, startColumn, numRows, numColumns).setBackground(color) or setFontColor(color).
+            10. For named ranges, use sheet.getRange(startRow, startColumn, numRows, numColumns).setName(name).
+            11. For named formulas, use SpreadsheetApp.getActiveSpreadsheet().addNamedRange(name, sheet.getRange(startRow, startColumn, numRows, numColumns)).
+            12. For named tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data) and optionally apply formatting.
+            13. For named charts, create a chart as in point 2 and assign a name using sheet.getCharts().
+            14. For named images, insert an image as in point 5 and rename manually if necessary.
+            15. For named data validation, apply validation as in point 8 and save it under a named range if needed.
+            16. For named conditional formatting, apply formatting as in point 9 and use an approach like named ranges if required.
         Task:
         ${description}
 
@@ -234,10 +321,14 @@ function codeGenerator(description) {
     }
 }
 
-function executeCode({ taskDescription, message, requires_additional_tool = false }) {
+function executeCode({ taskDescription, message, additionalInfo = null, requires_additional_tool = false }) {
     try {
-        // Generate code based on task description
-        let generatedCode = codeGenerator(taskDescription);
+        // Generate code based on task description and additional info
+        let generatedCode = codeGenerator(
+            additionalInfo ?
+                `${taskDescription}\n\nAdditional Information: ${JSON.stringify(additionalInfo)}` :
+                taskDescription
+        );
         console.log('Generated code:', generatedCode);
 
         // Check if code is a function declaration
@@ -268,16 +359,16 @@ function executeCode({ taskDescription, message, requires_additional_tool = fals
                 The following code generated an error: 
                 ${generatedCode}
                 
-                Error específico: ${evalError.message}
+                Specific error: ${evalError.message}
                 
-                Por favor, genera una versión corregida del código que resuelva este error.
+                Please generate a corrected version of the code that resolves this error.
                 
-                Tarea original: ${taskDescription}
+                Original task: ${taskDescription}
             `;
-            
+
             // We try to generate corrected code
             const correctedCode = codeGenerator(errorDescription);
-            
+
             // We try to execute the corrected code
             try {
                 result = eval(correctedCode);

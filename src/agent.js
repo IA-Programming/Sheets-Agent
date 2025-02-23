@@ -129,12 +129,11 @@ function isGreeting(response) {
 
 function selectTool(request) {
     try {
-        const { query, attachments = null } = request;
+        const { query, attachments = null, isContinuation = false } = request;
         const history = getHistory();
 
         // Check if this is a continuation from previous tool execution
         const lastMessage = history[history.length - 1];
-        const isContinuation = lastMessage?.role === 'tool';
 
         // For continuations, we don't need to add the query again
         const messages = isContinuation ?
