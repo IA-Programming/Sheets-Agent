@@ -8,5 +8,12 @@ appsscript.json
 ## VSCode
 .vscode
 
-## env
+## Node
+node_modules
+package-lock.json
+package.json
 .env
+
+## Cursor
+.cursorignore
+.cursorrules
