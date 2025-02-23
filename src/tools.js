@@ -261,19 +261,12 @@ function codeGenerator(description) {
             1. If no specific sheet is mentioned, work with the active sheet (SpreadsheetApp.getActive().getActiveSheet()).
             2. For charts, use sheet.newChart().addRange(sheet.getRange(startRow, startColumn, numRows, numColumns)).setPosition(row, column, offsetX, offsetY).build(), then insert with sheet.insertChart(chart).
             3. For tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data), **not sheet.newTable()**.
-            4. Always check that the data array matches the range size exactly (getRange(1, 1, 6, 1).setValues([['data_1'], ..., ['data_6']]));
-            5. For images, use sheet.insertImage(image, column, row).
-            6. For text, use sheet.getRange(row, column).setValue(text), **not setText()**.
-            7. For formulas, use sheet.getRange(row, column).setFormula(formula).
-            8. For data validation, use sheet.getRange(startRow, startColumn, numRows, numColumns).setDataValidation(rule).
-            9. For conditional formatting, use sheet.getRange(startRow, startColumn, numRows, numColumns).setBackground(color) or setFontColor(color).
-            10. For named ranges, use sheet.getRange(startRow, startColumn, numRows, numColumns).setName(name).
-            11. For named formulas, use SpreadsheetApp.getActiveSpreadsheet().addNamedRange(name, sheet.getRange(startRow, startColumn, numRows, numColumns)).
-            12. For named tables, use sheet.getRange(startRow, startColumn, numRows, numColumns).setValues(data) and optionally apply formatting.
-            13. For named charts, create a chart as in point 2 and assign a name using sheet.getCharts().
-            14. For named images, insert an image as in point 5 and rename manually if necessary.
-            15. For named data validation, apply validation as in point 8 and save it under a named range if needed.
-            16. For named conditional formatting, apply formatting as in point 9 and use an approach like named ranges if required.
+            4. For images, use sheet.insertImage(image, column, row).
+            5. For text, use sheet.getRange(row, column).setValue(text), **not setText()**.
+            6. For formulas, use sheet.getRange(row, column).setFormula(formula).
+            7. For data validation, use sheet.getRange(startRow, startColumn, numRows, numColumns).setDataValidation(rule).
+            8. For conditional formatting, use sheet.getRange(startRow, startColumn, numRows, numColumns).setBackground(color) or setFontColor(color).
+            9. Use fors, ifs, etc. for conditional or loop operations.
         Task:
         ${description}
 
@@ -285,6 +278,7 @@ function codeGenerator(description) {
             decoding_method: "greedy",
             max_new_tokens: 900,
             min_new_tokens: 0,
+            temperature: 0.5,
             stop_sequences: [],
             repetition_penalty: 1
         },
