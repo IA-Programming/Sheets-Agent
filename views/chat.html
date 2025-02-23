@@ -205,7 +205,7 @@
         <div class="flex items-center gap-2">
             <button id="new-chat"
                 class="text-light-foreground dark:text-dark-foreground hover:bg-light-muted dark:hover:bg-dark-muted transition-colors p-1 rounded-sm"
-                title="New chat">
+                title="New chat" onclick="clearChat()">
                 <i data-lucide="plus" class="w-4 h-4"></i>
             </button>
             <button id="theme-toggle"
@@ -237,7 +237,15 @@
                     <textarea id="message-input"
                         class="w-full resize-none outline-none bg-transparent p-2 min-h-[44px] max-h-32 text-sm text-light-foreground dark:text-dark-foreground placeholder:text-light-muted-foreground dark:placeholder:text-dark-muted-foreground"
                         placeholder="Type a message..."></textarea>
-                    <div class="px-2 py-1.5 flex justify-end border-t border-light-border dark:border-dark-border">
+                    <div class="px-2 py-1.5 flex justify-between border-t border-light-border dark:border-dark-border">
+                        <!-- Botón de attachments -->
+                        <button id="attachment-button" title="Coming soon"
+                            class="px-1 py-0.5 leading-tight text-xs text-light-muted-foreground dark:text-dark-muted-foreground hover:text-light-foreground dark:hover:text-dark-foreground rounded transition-colors flex items-center gap-1">
+                            <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                            <span>Attach</span>
+                        </button>
+
+                        <!-- Botón de enviar -->
                         <button id="send-message"
                             class="px-1 py-0.5 leading-tight text-xs bg-light-accent dark:bg-dark-accent text-light-accent-foreground dark:text-dark-accent-foreground rounded hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                             disabled>
@@ -301,7 +309,7 @@
                 <!-- Model -->
                 <div class="space-y-1.5">
                     <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">Model</label>
-                    <select
+                    <select id="model-select"
                         class="w-full px-1 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border">
                         <option value="ibm/granite-3-8b-instruct">Granite-3-8B-Instruct</option>
                     </select>
@@ -447,15 +455,43 @@
             if (sendButton) sendButton.addEventListener('click', sendMessage);
             if (clearButton) clearButton.addEventListener('click', clearChat);
 
-            // Load saved settings
-            const savedSettings = JSON.parse(localStorage.getItem('settings') || '{}');
+            // Cargar configuraciones guardadas
+            google.script.run
+                .withSuccessHandler(function (settings) {
+                    // Mostrar settings si falta alguna configuración requerida
+                    if (!settings.apiKey || !settings.apiUrl || !settings.projectId || !settings.tavilyApiKey) {
+                        showTab('settings');
+                    } else {
+                        showTab('chat');
+                        // Rellenar los campos con los valores guardados
+                        populateSettingsFields(settings);
 
-            // Mostrar settings si falta alguna configuración requerida
-            if (!savedSettings.apiKey || !savedSettings.apiUrl || !savedSettings.projectId || !savedSettings.tavilyApiKey) {
-                showTab('settings');
-            } else {
-                showTab('chat');
-            }
+                        // Cargar historial del chat
+                        google.script.run
+                            .withSuccessHandler(function (history) {
+                                if (history && history.length > 0) {
+                                    history.forEach(message => {
+                                        if (message.role === 'user' || message.role === 'assistant' || message.role === 'tool') {
+                                            appendMessage({
+                                                role: message.role === 'assistant' ? 'bot' : message.role,
+                                                content: message.content,
+                                                toolName: message.tool_call_id // Para mensajes de tipo tool
+                                            });
+                                        }
+                                    });
+                                }
+                            })
+                            .withFailureHandler(function (error) {
+                                console.error('Error loading chat history:', error);
+                            })
+                            .getHistory();
+                    }
+                })
+                .withFailureHandler(function (error) {
+                    console.error('Error loading settings:', error);
+                    showTab('settings');
+                })
+                .getUserSettings();
         }
 
         //*------------- EVENT HANDLING FUNCTIONS -------------*//
@@ -476,96 +512,64 @@
 
         //*------------- CHAT FUNCTIONS -------------*//
         function sendMessage() {
-            const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
-
             if (!message) return;
 
             messageInput.disabled = true;
-            const sendButton = document.getElementById('send-message');
             sendButton.disabled = true;
 
-            const userMessage = {
+            appendMessage({
                 role: 'user',
                 content: message
-            };
-            appendMessage(userMessage);
+            });
             messageInput.value = '';
 
-            // Start the process with selectTool
+            // Start tool selection with original query
             google.script.run
                 .withSuccessHandler(handleToolSelection)
                 .withFailureHandler(handleError)
                 .selectTool({
                     query: message,
-                    history: [], // TODO: Implement history
-                    attachments: null, // TODO: Implement attachments
-                    step: 1
+                    attachments: null
                 });
         }
 
         //*------------- AGENT FUNCTIONS -------------*//
-        function handleToolSelection(response) {
-            // Show the initial bot message
-            appendMessage({
-                role: 'bot',
-                content: response.message
-            });
-
-            // If there is a tool to execute, create its container
-            if (response.tool) {
-                const toolContainer = appendMessage({
-                    role: 'tool',
-                    toolName: response.tool.name,
-                    content: 'Processing...'
-                });
-
-                // Execute the tool
-                executeToolAction(response.tool, toolContainer);
-            } else {
-                messageInput.disabled = false;
-                messageInput.focus();
-            }
-        }
-
-        function executeToolAction(tool, toolContainer) {
+        function handleToolExecution(tool, toolContainer) {
             google.script.run
                 .withSuccessHandler((result) => {
-                    // Update the tool result
+                    // Update tool result display
                     const resultContainer = toolContainer.querySelector('.message-content');
                     resultContainer.textContent = JSON.stringify(result.output);
 
-                    // Ocultar el icono de carga
+                    // Hide loading icon
                     const loadingIcon = toolContainer.querySelector('.loading-icon');
                     if (loadingIcon) {
                         loadingIcon.classList.add('hidden');
                     }
 
-                    // Add the bot response message
+                    // Show tool result message
                     appendMessage({
                         role: 'bot',
                         content: result.message
                     });
 
-                    // If there is another tool to execute, continue the process
+                    // Check if we need to continue with another tool
                     if (result.nextTool) {
+                        // If more tools needed, call selectTool without the original query
                         google.script.run
                             .withSuccessHandler(handleToolSelection)
                             .withFailureHandler(handleError)
                             .selectTool({
-                                query: messageInput.value,
-                                history: [], // TODO: Implement history
-                                attachments: null,
-                                previousToolOutput: result,
-                                step: 2
+                                attachments: null
                             });
                     } else {
+                        // If done, enable input
                         messageInput.disabled = false;
                         messageInput.focus();
                     }
                 })
                 .withFailureHandler((error) => {
-                    // Ocultar el icono de carga en caso de error también
                     const loadingIcon = toolContainer.querySelector('.loading-icon');
                     if (loadingIcon) {
                         loadingIcon.classList.add('hidden');
@@ -573,6 +577,36 @@
                     handleError(error);
                 })
                 .executeTool(tool);
+        }
+
+        function handleToolSelection(response) {
+            if (response.finished) {
+                appendMessage({
+                    role: 'bot',
+                    content: response.message
+                });
+                messageInput.disabled = false;
+                messageInput.focus();
+                return;
+            }
+
+            if (response.tool) {
+                appendMessage({
+                    role: 'bot',
+                    content: response.message
+                });
+
+                const toolContainer = appendMessage({
+                    role: 'tool',
+                    toolName: response.tool.name,
+                    content: 'Processing...'
+                });
+
+                handleToolExecution(response.tool, toolContainer);
+            } else {
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
         }
 
         //*------------- MESSAGE FUNCTIONS -------------*//
@@ -602,20 +636,27 @@
             }
 
             const contentElement = container.querySelector('.message-content');
+
             if (contentElement && message.content) {
-                contentElement.textContent = message.content;
+                // Intentar formatear el contenido como Markdown si es un mensaje del bot
+                if (message.role === 'bot') {
+                    try {
+                        // Aquí podrías usar una librería de Markdown si lo deseas
+                        contentElement.innerHTML = message.content
+                            .replace(/`([^`]+)`/g, '<code>$1</code>')
+                            .replace(/\n/g, '<br>');
+                    } catch (e) {
+                        contentElement.textContent = message.content;
+                    }
+                } else {
+                    contentElement.textContent = message.content;
+                }
             }
 
             if (message.role === 'tool') {
                 const toolName = container.querySelector('.tool-name');
                 if (toolName && message.toolName) {
                     toolName.textContent = message.toolName;
-                }
-
-                // Mostrar el icono de carga si el contenido es "Processing..."
-                const loadingIcon = container.querySelector('.loading-icon');
-                if (loadingIcon && message.content === 'Processing...') {
-                    loadingIcon.classList.remove('hidden');
                 }
 
                 const toolToggle = container.querySelector('.tool-toggle');
@@ -625,6 +666,12 @@
                         toolContent.classList.toggle('expanded');
                         toolToggle.classList.toggle('expanded');
                     });
+                }
+
+                // Si es un mensaje de herramienta del historial, expandirlo por defecto
+                if (message.content !== 'Processing...') {
+                    toolContent.classList.add('expanded');
+                    toolToggle.classList.add('expanded');
                 }
             }
 
@@ -645,19 +692,35 @@
                 .withFailureHandler(function (error) {
                     console.error('Error clearing chat:', error);
                 })
-                .clearChatHistory();
+                .clearHistory();
         }
 
         //*------------- SETTINGS FUNCTIONS -------------*//
+        function populateSettingsFields(settings) {
+            const projectIdInput = document.querySelector('input[placeholder="Enter Project ID..."]');
+            const apiUrlInput = document.querySelector('input[placeholder="Enter API URL..."]');
+            const ibmApiKeyInput = document.querySelector('input[placeholder="Enter IBM API Key..."]');
+            const tavilyApiKeyInput = document.querySelector('input[placeholder="Enter Tavily API Key..."]');
+            const modelSelect = document.querySelector('#model-select');
+            const customInstructions = document.querySelector('textarea');
+
+            if (projectIdInput) projectIdInput.value = settings.projectId || '';
+            if (apiUrlInput) apiUrlInput.value = settings.apiUrl || '';
+            if (ibmApiKeyInput) ibmApiKeyInput.value = settings.apiKey || '';
+            if (tavilyApiKeyInput) tavilyApiKeyInput.value = settings.tavilyApiKey || '';
+            if (modelSelect) modelSelect.value = settings.model || 'ibm/granite-3-8b-instruct';
+            if (customInstructions) customInstructions.value = settings.customInstructions || '';
+        }
+
         function validateAndSaveSettings() {
             const projectIdInput = document.querySelector('input[placeholder="Enter Project ID..."]');
             const apiUrlInput = document.querySelector('input[placeholder="Enter API URL..."]');
             const ibmApiKeyInput = document.querySelector('input[placeholder="Enter IBM API Key..."]');
             const tavilyApiKeyInput = document.querySelector('input[placeholder="Enter Tavily API Key..."]');
-            const modelSelect = document.querySelector('select');
+            const modelSelect = document.querySelector('#model-select');
             const customInstructions = document.querySelector('textarea');
             const doneButton = document.getElementById('settings-done');
-            const loadingIcon = doneButton.querySelector('i[data-lucide="loader-2"]');
+            const loadingIcon = doneButton.querySelector('svg[data-lucide="loader-2"]');
 
             // Validate required fields
             const requiredFields = [
@@ -683,20 +746,7 @@
             doneButton.disabled = true;
             loadingIcon.classList.remove('hidden');
 
-            // Save settings both locally and in Google Apps Script
-            const settings = {
-                projectId: projectIdInput.value,
-                apiUrl: apiUrlInput.value,
-                ibmApiKey: ibmApiKeyInput.value,
-                tavilyApiKey: tavilyApiKeyInput.value,
-                model: modelSelect ? modelSelect.value : null,
-                instructions: customInstructions ? customInstructions.value : null
-            };
-
-            // Save to localStorage
-            localStorage.setItem('settings', JSON.stringify(settings));
-
-            // Save to Google Apps Script
+            // Save settings using Google Apps Script
             google.script.run
                 .withSuccessHandler(() => {
                     doneButton.disabled = false;
@@ -715,12 +765,12 @@
                     });
                 })
                 .saveUserSettings(
-                    settings.ibmApiKey,
-                    settings.model,
-                    settings.instructions,
-                    settings.apiUrl,
-                    settings.projectId,
-                    settings.tavilyApiKey
+                    ibmApiKeyInput.value,
+                    modelSelect ? modelSelect.value : null,
+                    customInstructions ? customInstructions.value : null,
+                    apiUrlInput.value,
+                    projectIdInput.value,
+                    tavilyApiKeyInput.value
                 );
         }
 
