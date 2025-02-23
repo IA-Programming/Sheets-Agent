@@ -44,7 +44,8 @@ function apiRequest(messages, tools = null, toolChoice = null, responseFormat = 
     const body = {
         model_id: settings.model,
         project_id: settings.projectId,
-        max_tokens: 5120,
+        max_tokens: 10240,
+        temperature: 0.5,
         messages,
         ...(tools && { tools }),
         ...(toolChoice && { tool_choice: toolChoice }),
