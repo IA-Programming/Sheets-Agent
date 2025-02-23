@@ -287,13 +287,14 @@
                         class="w-full px-2 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm">
                 </div>
 
-                <!-- API Key -->
+                <!-- IBM API Key -->
                 <div class="space-y-1.5">
-                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">API Key</label>
-                    <input type="password" placeholder="Enter API Key..."
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">IBM API
+                        Key</label>
+                    <input type="password" placeholder="Enter IBM API Key..."
                         class="w-full px-2 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm">
                     <p class="text-xs text-light-muted-foreground dark:text-dark-muted-foreground">
-                        This key is stored locally and only used to make API requests.
+                        This key is stored locally and only used to make API requests to IBM.
                     </p>
                 </div>
 
@@ -317,6 +318,17 @@
                         <p>Input price: $0.20/million tokens</p>
                         <p>Output price: $0.20/million tokens</p>
                     </div>
+                </div>
+
+                <!-- Tavily API Key -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-light-foreground dark:text-dark-foreground">Tavily API
+                        Key</label>
+                    <input type="password" placeholder="Enter Tavily API Key..."
+                        class="w-full px-2 py-1 text-sm bg-light-input dark:bg-dark-input border border-light-border dark:border-dark-border rounded-sm">
+                    <p class="text-xs text-light-muted-foreground dark:text-dark-muted-foreground">
+                        Required for web search capabilities.
+                    </p>
                 </div>
 
                 <!-- Custom Instructions -->
@@ -438,19 +450,8 @@
             // Load saved settings
             const savedSettings = JSON.parse(localStorage.getItem('settings') || '{}');
 
-            // Cargar valores guardados si existen
-            const apiKeyInput = document.querySelector('input[type="password"]');
-            const modelSelect = document.querySelector('select');
-            const customInstructions = document.querySelector('textarea');
-
-            if (apiKeyInput && savedSettings.apiKey) apiKeyInput.value = savedSettings.apiKey;
-            if (modelSelect && savedSettings.model) modelSelect.value = savedSettings.model;
-            if (customInstructions && savedSettings.instructions) {
-                customInstructions.value = savedSettings.instructions;
-            }
-
-            // Mostrar settings si no hay API key configurada
-            if (!savedSettings.apiKey || !savedSettings.apiUrl || !savedSettings.projectId) {
+            // Mostrar settings si falta alguna configuración requerida
+            if (!savedSettings.apiKey || !savedSettings.apiUrl || !savedSettings.projectId || !savedSettings.tavilyApiKey) {
                 showTab('settings');
             } else {
                 showTab('chat');
@@ -649,9 +650,10 @@
 
         //*------------- SETTINGS FUNCTIONS -------------*//
         function validateAndSaveSettings() {
-            const apiKeyInput = document.querySelector('input[type="password"]');
-            const apiUrlInput = document.querySelector('input[placeholder="Enter API URL..."]');
             const projectIdInput = document.querySelector('input[placeholder="Enter Project ID..."]');
+            const apiUrlInput = document.querySelector('input[placeholder="Enter API URL..."]');
+            const ibmApiKeyInput = document.querySelector('input[placeholder="Enter IBM API Key..."]');
+            const tavilyApiKeyInput = document.querySelector('input[placeholder="Enter Tavily API Key..."]');
             const modelSelect = document.querySelector('select');
             const customInstructions = document.querySelector('textarea');
             const doneButton = document.getElementById('settings-done');
@@ -661,7 +663,8 @@
             const requiredFields = [
                 { input: projectIdInput, name: 'Project ID' },
                 { input: apiUrlInput, name: 'API URL' },
-                { input: apiKeyInput, name: 'API Key' }
+                { input: ibmApiKeyInput, name: 'IBM API Key' },
+                { input: tavilyApiKeyInput, name: 'Tavily API Key' }
             ];
 
             for (const field of requiredFields) {
@@ -682,9 +685,10 @@
 
             // Save settings both locally and in Google Apps Script
             const settings = {
-                apiKey: apiKeyInput.value,
-                apiUrl: apiUrlInput.value,
                 projectId: projectIdInput.value,
+                apiUrl: apiUrlInput.value,
+                ibmApiKey: ibmApiKeyInput.value,
+                tavilyApiKey: tavilyApiKeyInput.value,
                 model: modelSelect ? modelSelect.value : null,
                 instructions: customInstructions ? customInstructions.value : null
             };
@@ -703,7 +707,6 @@
                     console.error('Error saving settings:', error);
                     doneButton.disabled = false;
                     loadingIcon.classList.add('hidden');
-                    // Show error on all fields
                     requiredFields.forEach(field => {
                         field.input.classList.add('border-red-500', 'dark:border-red-500', 'animate-shake');
                         setTimeout(() => {
@@ -712,11 +715,12 @@
                     });
                 })
                 .saveUserSettings(
-                    settings.apiKey,
+                    settings.ibmApiKey,
                     settings.model,
                     settings.instructions,
                     settings.apiUrl,
-                    settings.projectId
+                    settings.projectId,
+                    settings.tavilyApiKey
                 );
         }
 
